@@ -60,7 +60,7 @@ def create_tree_boundary(osm, buffer = .0003):
     return shapely_polygons+ tree_polys
 
 #TODO: Combine this method with the create_building_boundary method
-#TODO: make sure your eps isnt too high
+
 def create_tall_boundary(osm, threshold=10):
     buildings = osm.get_buildings()
 
@@ -86,7 +86,7 @@ def create_tall_boundary(osm, threshold=10):
 
     tall_points = np.vstack(list(zip(x_points, y_points)))
     
-    labels, num_clusters = run_no_plot(tall_points)
+    labels, num_clusters = run_plot(tall_points)
     # Extracting points for each cluster
     clusters = []
     for label in np.unique(labels):
@@ -107,7 +107,7 @@ def create_tall_boundary(osm, threshold=10):
         polygon = Polygon(vertices)
         shapely_polygons.append(polygon)
     return shapely_polygons
-
+#TODO: make sure your eps isnt too high
 def create_building_boundary(osm, buffer=.0003):
 
     #get the number of buildings, cluster the buildings, then get convex hull of isolated areas without buildings
@@ -123,7 +123,7 @@ def create_building_boundary(osm, buffer=.0003):
         y_points.extend(y)
 
     points = np.vstack(list(zip(x_points, y_points)))
-    labels, num_clusters = run_plot(points, eps=.01)
+    labels, num_clusters = run_plot(points)
     
     # Extracting points for each cluster
     clusters = []
