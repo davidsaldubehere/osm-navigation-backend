@@ -6,7 +6,7 @@ from shapely.geometry import LineString
 from create_polygons import create_tree_boundary, create_tall_boundary, create_building_boundary
 
 # Initialize the OSM parser object
-osm = OSM("state_college_mountains.osm.pbf")
+osm = OSM("state_college_large.osm.pbf")
 # Read nodes and edges of the 'driving' network
 nodes, edges = osm.get_network(nodes=True, network_type="driving")
 # Plot nodes and edges on a map
