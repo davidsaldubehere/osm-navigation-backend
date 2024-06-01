@@ -33,9 +33,11 @@ def read_elevation_from_file(hgt_file, min_lat, min_lon, max_lat, max_lon):
         max_lat_row = int(round((max_lat - int(max_lat)) * (SAMPLES - 1), 0))
         max_lon_row = int(round((max_lon - int(max_lon)) * (SAMPLES - 1), 0))
 
+
         #we have to invert the latitude indexes because latitude increases as we go up
         #but the hgt file has the latitude increasing as we go down
         min_lat_row, max_lat_row = SAMPLES - 1 - max_lat_row, SAMPLES - 1 - min_lat_row + 1
+
         elevation_subset = elevations[min_lat_row:max_lat_row, min_lon_row:max_lon_row + 1]
 
         lon_vals = np.linspace(min_lon, max_lon, elevation_subset.shape[1])
@@ -75,6 +77,8 @@ def get_file_name(min_lat, min_lon, max_lat, max_lon):
 
     hgt_file = "%(ns)s%(lat)02d%(ew)s%(lon)03d.hgt" % \
                {'lat': abs(min_lat), 'lon': abs(min_lon), 'ns': ns, 'ew': ew}
+    
+    print("hgt file: %s" % hgt_file)
     
     hgt_file_1 = "%(ns)s%(lat)02d%(ew)s%(lon)03d.hgt" % \
                {'lat': abs(max_lat), 'lon': abs(max_lon), 'ns': ns_1, 'ew': ew_1}
