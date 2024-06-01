@@ -4,18 +4,20 @@ import matplotlib.pyplot as plt
 
 
 # Initialize the OSM parser object
-osm = OSM("nyc.osm.pbf")
+osm = OSM("state_college.osm.pbf")
 natural = osm.get_natural()
 roads = osm.get_network(network_type="driving")
-
 buildings = osm.get_buildings()
 landuse = osm.get_landuse()
 tourist_filter = {"tourism": True}
 tourist_spots = osm.get_pois(custom_filter=tourist_filter)
 viewpoints = tourist_spots[tourist_spots['tourism'] == 'viewpoint']
 
-#plot the viewpoints
-viewpoints.plot(column='name', legend=True, figsize=(10,6))
+if viewpoints.empty:
+    print("No viewpoints found")
+else:
+
+    viewpoints.plot(column='name', legend=True, figsize=(10,6))
 
 
 

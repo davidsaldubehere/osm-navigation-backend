@@ -145,3 +145,10 @@ def create_building_boundary(osm, buffer=.0003):
         polygon = Polygon(vertices)
         shapely_polygons.append(polygon)
     return shapely_polygons
+
+def create_sharp_elevation_boundary(osm, buffer=.0003):
+    
+    #first get the bounds of the map
+    bounds = osm.bounds
+    
+    #

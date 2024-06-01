@@ -72,6 +72,7 @@ def preprocess_edges(osm):
     return edge_dict
 
 #returns the edges that have a sharp turn, same TODO as above
+#TODO: some weird stuff is happening with geoseries geometry instead of linestring. also there could be like a 4 way intersection that I have to account for
 def sharp_turns(osm, threshold = 45):
     #For each edge, get the angle between each of its connecting edges
 
