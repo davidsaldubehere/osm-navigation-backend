@@ -4,9 +4,10 @@ import matplotlib.pyplot as plt
 
 
 # Initialize the OSM parser object
-osm = OSM("state_college_mountains.osm.pbf")
+osm = OSM("nyc.osm.pbf")
 natural = osm.get_natural()
 roads = osm.get_network(network_type="driving")
+
 buildings = osm.get_buildings()
 landuse = osm.get_landuse()
 tourist_filter = {"tourism": True}

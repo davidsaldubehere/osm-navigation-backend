@@ -123,7 +123,7 @@ def create_building_boundary(osm, buffer=.0003):
         y_points.extend(y)
 
     points = np.vstack(list(zip(x_points, y_points)))
-    labels, num_clusters = run_plot(points)
+    labels, num_clusters = run_no_plot(points)
     
     # Extracting points for each cluster
     clusters = []
