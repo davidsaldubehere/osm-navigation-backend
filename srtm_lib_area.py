@@ -82,15 +82,15 @@ def get_file_name(min_lat, min_lon, max_lat, max_lon):
     
     if hgt_file != hgt_file_1:
         #We need to calculate the necessary files to read
-        if floor(min_lat) != floor(max_lat):
-            lats_to_read = list(range(floor(min_lat), floor(max_lat)))
+        if int(min_lat) != int(max_lat):
+            lats_to_read = list(range(int(min_lat), int(max_lat) + 1)) if min_lat < max_lat else list(range(int(max_lat), int(min_lat) - 1))
         else:
-            lats_to_read = [floor(min_lat)]
+            lats_to_read = [int(min_lat)]
         
-        if floor(min_lon) != floor(max_lon):
-            lons_to_read = list(range(floor(min_lon), floor(max_lon)))
+        if int(min_lon) != int(max_lon):
+            lons_to_read = list(range(int(min_lon), int(max_lon) + 1)) if min_lon < max_lon else list(range(int(max_lon), int(min_lon) - 1))
         else:
-            lons_to_read = [floor(min_lon)]
+            lons_to_read = [int(min_lon)]
 
         print(f"Area crosses multiple hgt files. Reading from lats {lats_to_read} and lons {lons_to_read}")
 
@@ -98,9 +98,9 @@ def get_file_name(min_lat, min_lon, max_lat, max_lon):
 
         #extend the other list to match the length of the max list
         if len(lats_to_read) > len(lons_to_read):
-            lons_to_read.extend([floor(min_lon)] * (len(lats_to_read) - len(lons_to_read)))
+            lons_to_read.extend([int(min_lon)] * (len(lats_to_read) - len(lons_to_read)))
         else:
-            lats_to_read.extend([floor(min_lat)] * (len(lons_to_read) - len(lats_to_read)))
+            lats_to_read.extend([int(min_lat)] * (len(lons_to_read) - len(lats_to_read)))
 
         for count, section in enumerate(max_section):
             file_paths = []
