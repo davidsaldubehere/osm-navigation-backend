@@ -6,6 +6,10 @@ from shapely import Polygon
 import matplotlib.pyplot as plt
 #from kmeans import run_plot
 from dbscan import run_plot, run_no_plot
+from scipy.ndimage import gaussian_gradient_magnitude
+from srtm_lib_area import get_elevation
+from skimage.measure import find_contours
+
 # Initialize the OSM parser object
 
 
@@ -146,9 +150,38 @@ def create_building_boundary(osm, buffer=.0003):
         shapely_polygons.append(polygon)
     return shapely_polygons
 
-def create_sharp_elevation_boundary(osm, buffer=.0003):
-    
-    #first get the bounds of the map
-    bounds = osm.bounds
-    
-    #
+#TODO: The main issue is that the hgt files are not big enough to cover the entire area
+#Piece together the hgt files
+def create_sharp_elevation_boundary(osm, percentile=90, buffer=.0003):
+    roads = osm.get_network(network_type="driving")
+    nodes = osm._nodes
+
+    lat_min, lat_max = nodes['lat'].min(), nodes['lat'].max()
+    lon_min, lon_max = nodes['lon'].min(), nodes['lon'].max()
+
+    elevation, lon_labels, lat_labels = get_elevation(lat_min, lat_max, lon_min, lon_max)
+
+    #lon and lat labels are the points of elevation data
+
+    plt.imshow(elevation, cmap='terrain', extent=(lon_min, lon_max, lat_min, lat_max))
+    plt.colorbar(label='Elevation [m]')
+    plt.xlabel('Longitude')
+    plt.ylabel('Latitude')
+    plt.title('Elevation data')
+
+    gradient_magnitude = gaussian_gradient_magnitude(elevation, sigma=1)
+
+    # Define a threshold for detecting sharp drop-offs
+    threshold = np.percentile(gradient_magnitude, percentile)  # Example: top 10% of gradients
+
+    sharp_edges = gradient_magnitude > threshold
+
+    # Find contours in the binary mask
+    contours = find_contours(sharp_edges, level=0.5)
+    polygons = []
+    for contour in contours:
+        coords = [(lon_labels[int(p[1])], lat_labels[int(p[0])]) for p in contour]
+        polygon = Polygon(coords)
+        if polygon.is_valid:
+            polygons.append(polygon)
+    return polygons

@@ -1,7 +1,7 @@
 from __future__ import print_function
 import os
 import numpy as np
-
+from math import floor, ceil
 SRTM_DICT = {'SRTM1': 3601, 'SRTM3': 1201}
 
 # Get the type of SRTM files or use SRTM1 by default
@@ -47,13 +47,11 @@ def read_elevation_from_file(hgt_file, min_lat, min_lon, max_lat, max_lon):
 
 
         #return elevations[SAMPLES - 1 - lat_row, lon_row].astype(int)
-
+#TODO: If it crosses hemispheres, this will not work
 def get_file_name(min_lat, min_lon, max_lat, max_lon):
     """
     Returns filename such as N27E086.hgt, concatenated
     with HGTDIR where these 'hgt' files are kept
-
-    Only one file can be used for now (for now)
     """
     if min_lat >= 0:
         ns = 'N'
@@ -78,17 +76,41 @@ def get_file_name(min_lat, min_lon, max_lat, max_lon):
     hgt_file = "%(ns)s%(lat)02d%(ew)s%(lon)03d.hgt" % \
                {'lat': abs(min_lat), 'lon': abs(min_lon), 'ns': ns, 'ew': ew}
     
-    print("hgt file: %s" % hgt_file)
     
     hgt_file_1 = "%(ns)s%(lat)02d%(ew)s%(lon)03d.hgt" % \
                {'lat': abs(max_lat), 'lon': abs(max_lon), 'ns': ns_1, 'ew': ew_1}
     
-    assert hgt_file == hgt_file_1, "Only one hgt file can be used at a time, make sure the region is small enough to fit in one hgt file"
+    if hgt_file != hgt_file_1:
+        #We need to calculate the necessary files to read
+        if floor(min_lat) != floor(max_lat):
+            lats_to_read = list(range(floor(min_lat), floor(max_lat)))
+        else:
+            lats_to_read = [floor(min_lat)]
+        
+        if floor(min_lon) != floor(max_lon):
+            lons_to_read = list(range(floor(min_lon), floor(max_lon)))
+        else:
+            lons_to_read = [floor(min_lon)]
 
-    hgt_file_path = os.path.join(HGTDIR, hgt_file)
-    #print("file path: %s" % hgt_file_path)
-    if os.path.isfile(hgt_file_path):
-    #    print("valid file path: %s" % hgt_file_path)
-        return hgt_file_path
+        print(f"Area crosses multiple hgt files. Reading from lats {lats_to_read} and lons {lons_to_read}")
+
+        max_section = lats_to_read if len(lats_to_read) > len(lons_to_read) else lons_to_read
+
+        #extend the other list to match the length of the max list
+        if len(lats_to_read) > len(lons_to_read):
+            lons_to_read.extend([floor(min_lon)] * (len(lats_to_read) - len(lons_to_read)))
+        else:
+            lats_to_read.extend([floor(min_lat)] * (len(lons_to_read) - len(lats_to_read)))
+
+        for count, section in enumerate(max_section):
+            file_paths = []
+            for lat, lon in zip(lats_to_read, lons_to_read):
+                hgt_file = "%(ns)s%(lat)02d%(ew)s%(lon)03d.hgt" % \
+               {'lat': abs(lat), 'lon': abs(lon), 'ns': 'N' if lat >= 0 else 'S', 'ew': 'E' if lon >= 0 else 'W'}
+                file_paths.append(os.path.join(HGTDIR, hgt_file))
+        return file_paths
+
     else:
-        return None
+
+        return os.path.join(HGTDIR, hgt_file)
+
