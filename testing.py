@@ -26,9 +26,13 @@ osm = OSM("state_college_mountains.osm.pbf")
 #for polygon in buildings:
 #    x,y = polygon.exterior.xy
     #plt.plot(x, y)
+39.516849, -77.263645
 
-lat_min, lat_max = 39.7775, 40.1  # Latitude bounds
-lon_min, lon_max = -77.865, -75.835  # Longitude bounds
+40.894421, -74.032337
+
+
+lat_min, lat_max = 39.1, 40.99999  # Latitude bounds
+lon_min, lon_max = -78.99999, -78  # Longitude bounds
 
 #print(get_file_name(lat_min, lon_min, lat_max, lon_max))
 
