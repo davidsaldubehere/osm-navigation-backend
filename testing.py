@@ -27,7 +27,18 @@ osm = OSM("state_college_mountains.osm.pbf")
 #    x,y = polygon.exterior.xy
     #plt.plot(x, y)
 
-lat_min, lat_max = 40.7775, 40.7950  # Latitude bounds
+lat_min, lat_max = 39.7775, 40.1  # Latitude bounds
 lon_min, lon_max = -77.865, -75.835  # Longitude bounds
 
-print(get_file_name(lat_min, lon_min, lat_max, lon_max))
+#print(get_file_name(lat_min, lon_min, lat_max, lon_max))
+
+elevation, lon_labels, lat_labels = get_elevation(lat_min, lat_max, lon_min, lon_max)
+print(elevation.shape)
+
+#plot the elevation data as heat map
+plt.imshow(elevation, cmap='terrain', extent=(lon_min, lon_max, lat_min, lat_max))
+plt.colorbar(label='Elevation [m]')
+plt.xlabel('Longitude')
+plt.ylabel('Latitude')
+plt.title('Elevation data')
+plt.show()
