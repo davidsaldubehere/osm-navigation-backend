@@ -59,10 +59,11 @@ for polygon in building_polys:
     x,y = polygon.exterior.xy
     plt.plot(x, y)
 
-#buildings = create_building_boundary(osm)
-#for polygon in buildings:
-#    x,y = polygon.exterior.xy
-#    plt.plot(x, y)
+buildings = create_building_boundary(osm)
+for polygon in buildings:
+    x,y = polygon.exterior.xy
+    plt.plot(x, y)
+plt.show()
 
 
 #Lets see if our route goes through tree areas by checking if each edge of the route intersects with any of the tree polygons

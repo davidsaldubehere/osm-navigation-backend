@@ -10,8 +10,12 @@ from scipy.ndimage import gaussian_gradient_magnitude
 from srtm_lib_area import get_elevation
 from skimage.measure import find_contours
 
-# Initialize the OSM parser object
-
+def create_water_boundary(osm, buffer=.0003):
+    water = osm.get_natural()
+    water = water[water['natural'] == 'water']
+    water_polys = water[water['geometry'].apply(lambda x: x.geom_type) == 'Polygon']['geometry']
+    water_polys = [poly.buffer(buffer) for poly in water_polys]
+    return water_polys
 
 #TODO: we need more types of greenery to include
 def create_tree_boundary(osm, buffer = .0003):
@@ -90,7 +94,7 @@ def create_tall_boundary(osm, threshold=10):
 
     tall_points = np.vstack(list(zip(x_points, y_points)))
     
-    labels, num_clusters = run_plot(tall_points)
+    labels, num_clusters = run_no_plot(tall_points)
     # Extracting points for each cluster
     clusters = []
     for label in np.unique(labels):
@@ -150,8 +154,6 @@ def create_building_boundary(osm, buffer=.0003):
         shapely_polygons.append(polygon)
     return shapely_polygons
 
-#TODO: The main issue is that the hgt files are not big enough to cover the entire area
-#Piece together the hgt files
 def create_sharp_elevation_boundary(osm, percentile=90, buffer=.0003):
     roads = osm.get_network(network_type="driving")
     nodes = osm._nodes
@@ -183,5 +185,6 @@ def create_sharp_elevation_boundary(osm, percentile=90, buffer=.0003):
         coords = [(lon_labels[int(p[1])], lat_labels[int(p[0])]) for p in contour]
         polygon = Polygon(coords)
         if polygon.is_valid:
+            polygon = polygon.buffer(buffer) # Buffer the polygon slightly
             polygons.append(polygon)
     return polygons
