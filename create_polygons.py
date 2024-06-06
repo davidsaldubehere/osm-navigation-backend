@@ -17,7 +17,7 @@ def create_water_boundary(osm, buffer=.0003):
     water_polys = [poly.buffer(buffer) for poly in water_polys]
     return water_polys
 
-#TODO: we need more types of greenery to include
+#TODO: we need more types of greenery to include (including tree_row)
 def create_tree_boundary(osm, buffer = .0003):
     boundaries = []
     natural = osm.get_natural()

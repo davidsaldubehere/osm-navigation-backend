@@ -5,6 +5,7 @@ from create_polygons import create_tree_boundary, create_building_boundary, \
 from shapely.geometry import LineString
 from classify_edges import high_speed_limit
 import random
+from destination_selection import get_lookout_points, get_water_points
 #First we get open the OSM data
 osm = OSM("state_college_large.osm.pbf")
 #Constant weights
@@ -14,6 +15,9 @@ ALL_BUILDINGS_WEIGHT = 1
 WATER_WEIGHT = 1
 CLIFF_WEIGHT = 1
 HIGH_SPEED_WEIGHT = 1
+MAX_DISTANCE_THRESHOLD = 20
+MIN_DISTANCE_THRESHOLD = 5
+
 def process_edges(osm):
 
 
@@ -59,14 +63,26 @@ def process_edges(osm):
             edge['user_weight'] += HIGH_SPEED_WEIGHT
             print(f'edge {i} is a high speed edge')
     return nodes, edges
+#TODO: add more options, only lookouts and water are available
+def get_destination_nodes(start_node):
+    #The options are random, bodies of water, parks, wooded areas, lookouts, large open areas/fields
+    #We can add more options as we see fit
+    destination_nodes = []
+    destination_nodes.append(get_lookout_points(osm, start_node, 
+        MAX_DISTANCE_THRESHOLD, MIN_DISTANCE_THRESHOLD))
+    destination_nodes.append(get_water_points(osm, start_node,
+        MAX_DISTANCE_THRESHOLD, MIN_DISTANCE_THRESHOLD))
+    return destination_nodes
 
-def get_destination_nodes(nodes):
-    #So we either pick some body of water, some viewpoint, or some large field or park
-    pass
+    
+#start location will be blank for now since we have no GPS data
+def main(start_location=None):
+    #lets temporarily assume that the start location is a random node
 
-def main(start_location):
     nodes, edges = process_edges(osm)
-    destinate_nodes = get_destination_nodes(nodes)
+    
+    start_node = nodes.sample(1)
+    destinate_nodes = get_destination_nodes(nodes, start_node)
     #randomly select a destination node
-    destination = random.choice(destinate_nodes)
-    #Lets find the closest node to the start location
+    destination = random.choice(destinate_nodes) #WARNING, THIS POINT MAY NOT BE A VALID ROAD NODE (we will have to find the closest road node)
+    
