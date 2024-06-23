@@ -15,6 +15,7 @@ def create_water_boundary(osm, buffer=.0003):
     water = water[water['natural'] == 'water']
     water_polys = water[water['geometry'].apply(lambda x: x.geom_type) == 'Polygon']['geometry']
     water_polys = [poly.buffer(buffer) for poly in water_polys]
+
     return water_polys
 
 #TODO: we need more types of greenery to include (including tree_row)

@@ -1,8 +1,10 @@
 from pyrosm import OSM
 from math import radians, cos, sin, asin, sqrt
 from create_polygons import create_water_boundary
-from pyproj import Proj, transform
 from shapely.geometry import Polygon
+import geopandas as gpd
+import matplotlib.pyplot as plt
+
 
 def haversine(lon1, lat1, lon2, lat2):
     """
@@ -48,7 +50,7 @@ def get_lookout_points(osm, start, max_distance_threshold=15, min_distance_thres
             print(f'Warning: viewpoint {viewpoints.iloc[count]["name"]} is too far away at {distance} miles')
     return safe_viewpoints
 
-def get_water_points(osm, start, max_distance_threshold=20, min_distance_threshold=5):
+def get_water_points(osm, start, max_distance_threshold=20, min_distance_threshold=1):
     water_areas = create_water_boundary(osm) #get the centroids of the water areas
     if len(water_areas) == 0:
         print("No water areas found")
@@ -72,18 +74,15 @@ def get_water_points(osm, start, max_distance_threshold=20, min_distance_thresho
 
         #first we need to project the water areas to a metric projection
         # Define a projection (e.g., EPSG:4326 to EPSG:3857)
-        proj_wgs84 = Proj(init='epsg:4326')  # WGS84
-        proj_meters = Proj(init='epsg:3857')  # Mercator
 
-        # Project the polygon to a planar coordinate system
-        projected_polygons_area = [Polygon(
-            [transform(proj_wgs84, proj_meters, x, y) for x, y in polygon.exterior.coords]
-        ).area for polygon in safe_water_areas]
+        #TODO: I am almost 90% sure that this is going to break with different types of bodies of water
+        geometries = gpd.GeoSeries(safe_water_areas, crs="EPSG:4326")
+        projected_geometry = geometries.to_crs("epsg:4326") #TODO: invesetigate if this is the best projection
+        projected_polygons_area = [x.area for x in projected_geometry]
+
 
         #sort the areas
         safe_water_areas = [x.centroid for _, x in sorted(zip(projected_polygons_area, safe_water_areas), key=lambda pair: pair[0], reverse=True)]
-        
-        #keep the top 50%
         safe_water_areas = safe_water_areas[:len(safe_water_areas)//2]
-    
+    #THIS ACTUALLY WORKS I TESTED IT
     return safe_water_areas

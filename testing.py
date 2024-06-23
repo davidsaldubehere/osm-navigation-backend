@@ -19,3 +19,5 @@ print(f'Start node is {start_node["geometry"]}')
 result = get_lookout_points(osm, start_node)
 for i in result:
     print(f'Viewpoint {i["name"]} is at {i["geometry"]}')
+
+resutl = get_water_points(osm, start_node)
