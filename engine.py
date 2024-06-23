@@ -42,29 +42,25 @@ def process_edges(osm):
         for polygon in wooded_area:
             if edge_coords.intersects(polygon):
                 edge['user_weight'] += WOODS_WEIGHT
-                print(f'edge {i} intersects wooded area')
         for polygon in tall_buildings:
             if edge_coords.intersects(polygon):
                 edge['user_weight'] += TALL_BUILDINGS_WEIGHT
-                print(f'edge {i} intersects tall buildings')
         for polygon in all_buildings:
             if edge_coords.intersects(polygon):
                 edge['user_weight'] += ALL_BUILDINGS_WEIGHT
-                print(f'edge {i} intersects all buildings')
         for polygon in water_area:
             if edge_coords.intersects(polygon):
                 edge['user_weight'] += WATER_WEIGHT
-                print(f'edge {i} intersects water area')
         for polygon in cliff_areas:
             if edge_coords.intersects(polygon):
                 edge['user_weight'] += CLIFF_WEIGHT
-                print(f'edge {i} intersects cliff area')
-        if edge in high_speed_edges:
+        #TODO: see if there is a better way for getting a unique key
+        if edge["geometry"] in high_speed_edges: #We are using geometry as a unique key since no two edges can be at the same locations
             edge['user_weight'] += HIGH_SPEED_WEIGHT
             print(f'edge {i} is a high speed edge')
     return nodes, edges
 #TODO: add more options, only lookouts and water are available
-def get_destination_nodes(start_node):
+def get_destination_nodes(nodes, start_node):
     #The options are random, bodies of water, parks, wooded areas, lookouts, large open areas/fields
     #We can add more options as we see fit
     destination_nodes = []
@@ -74,7 +70,7 @@ def get_destination_nodes(start_node):
         MAX_DISTANCE_THRESHOLD, MIN_DISTANCE_THRESHOLD))
     return destination_nodes
 
-    
+
 #start location will be blank for now since we have no GPS data
 def main(start_location=None):
     #lets temporarily assume that the start location is a random node
@@ -85,4 +81,5 @@ def main(start_location=None):
     destinate_nodes = get_destination_nodes(nodes, start_node)
     #randomly select a destination node
     destination = random.choice(destinate_nodes) #WARNING, THIS POINT MAY NOT BE A VALID ROAD NODE (we will have to find the closest road node)
-    
+
+main()

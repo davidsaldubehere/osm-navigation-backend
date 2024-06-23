@@ -20,7 +20,7 @@ def haversine(lon1, lat1, lon2, lat2):
     r = 3956 # Radius of earth in kilometers. Use 3956 for miles. Determines return value units.
     return c * r
 
-def get_lookout_points(osm, start, max_distance_threshold=20, min_distance_threshold=5):
+def get_lookout_points(osm, start, max_distance_threshold=15, min_distance_threshold=1):
     tourist_filter = {"tourism": True}
     tourist_filter = {"tourism": True}
     tourist_spots = osm.get_pois(custom_filter=tourist_filter)
@@ -34,13 +34,18 @@ def get_lookout_points(osm, start, max_distance_threshold=20, min_distance_thres
 
     #we only really want the viewpoints that are within half the straight line distance of the start point
     safe_viewpoints = []
-    for viewpoint in viewpoints:
+    #print(f'\n\nThe viewpoints are {viewpoints["geometry"]}   \n\n')
+    for count, viewpoint in enumerate(viewpoints['geometry']):
+        
         #extract the coordinates of the viewpoint
-        viewpoint_lon = viewpoint['geometry'].x
-        viewpoint_lat = viewpoint['geometry'].y
+        viewpoint_lon = viewpoint.x
+        viewpoint_lat = viewpoint.y
         distance = haversine(start_lon, start_lat, viewpoint_lon, viewpoint_lat)
+        print(f'\n\nThe distance is {distance}   \n\n')
         if distance < max_distance_threshold and distance > min_distance_threshold:
-            safe_viewpoints.append(viewpoint)
+            safe_viewpoints.append(viewpoints.iloc[count])
+        else:
+            print(f'Warning: viewpoint {viewpoints.iloc[count]["name"]} is too far away at {distance} miles')
     return safe_viewpoints
 
 def get_water_points(osm, start, max_distance_threshold=20, min_distance_threshold=5):
