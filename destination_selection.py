@@ -43,7 +43,6 @@ def get_lookout_points(osm, start, max_distance_threshold=15, min_distance_thres
         viewpoint_lon = viewpoint.x
         viewpoint_lat = viewpoint.y
         distance = haversine(start_lon, start_lat, viewpoint_lon, viewpoint_lat)
-        print(f'\n\nThe distance is {distance}   \n\n')
         if distance < max_distance_threshold and distance > min_distance_threshold:
             safe_viewpoints.append(viewpoints.iloc[count])
         else:
@@ -86,3 +85,18 @@ def get_water_points(osm, start, max_distance_threshold=20, min_distance_thresho
         safe_water_areas = safe_water_areas[:len(safe_water_areas)//2]
     #THIS ACTUALLY WORKS I TESTED IT
     return safe_water_areas
+
+def get_closest_node(nodes, latitude, longitude):
+
+    min_distance = int(1e9)
+    closest_node = None
+    for index in range(len(nodes)):
+        node = nodes.iloc[index]
+        node_lon, node_lat = node.lon, node.lat
+        distance = haversine(node_lon, node_lat, float(longitude), float(latitude))
+        if distance < min_distance:
+            min_distance = distance
+            closest_node = node
+    if min_distance > 1:
+        print(f'\n\n Warning!!!!: closest node is {min_distance} miles away')
+    return closest_node

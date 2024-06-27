@@ -166,11 +166,11 @@ def create_sharp_elevation_boundary(osm, percentile=90, buffer=.0003):
 
     #lon and lat labels are the points of elevation data
 
-    plt.imshow(elevation, cmap='terrain', extent=(lon_min, lon_max, lat_min, lat_max))
-    plt.colorbar(label='Elevation [m]')
-    plt.xlabel('Longitude')
-    plt.ylabel('Latitude')
-    plt.title('Elevation data')
+    #plt.imshow(elevation, cmap='terrain', extent=(lon_min, lon_max, lat_min, lat_max))
+    #plt.colorbar(label='Elevation [m]')
+    #plt.xlabel('Longitude')
+    #plt.ylabel('Latitude')
+    #plt.title('Elevation data')
 
     gradient_magnitude = gaussian_gradient_magnitude(elevation, sigma=1)
 
