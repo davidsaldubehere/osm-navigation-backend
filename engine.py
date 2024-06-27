@@ -15,7 +15,7 @@ osm = OSM("state_college_large.osm.pbf")
 WOODS_WEIGHT = -1000
 TALL_BUILDINGS_WEIGHT = 1
 ALL_BUILDINGS_WEIGHT = 1
-WATER_WEIGHT = 1
+WATER_WEIGHT = -1000
 CLIFF_WEIGHT = 1
 HIGH_SPEED_WEIGHT = 1
 
@@ -30,11 +30,42 @@ def process_edges(osm):
     #TODO: make this a preprocess step
     #Next we calculate the corresponding polygons that can be used in the path calculation
     wooded_area = create_tree_boundary(osm)
-    #tall_buildings = create_tall_boundary(osm)
-    #all_buildings = create_building_boundary(osm)
-    #water_area = create_water_boundary(osm)
-    #cliff_areas = create_sharp_elevation_boundary(osm)
-    #high_speed_edges = high_speed_limit(osm)
+    tall_buildings = create_tall_boundary(osm)
+    all_buildings = create_building_boundary(osm)
+    water_area = create_water_boundary(osm)
+    cliff_areas = create_sharp_elevation_boundary(osm)
+    high_speed_edges = high_speed_limit(osm)
+    #Show all the boundaries
+    fig, ax = plt.subplots()
+    for polygon in wooded_area:
+        x,y = polygon.exterior.xy
+        ax.plot(x, y, color='green')
+    for polygon in tall_buildings:
+        x,y = polygon.exterior.xy
+        ax.plot(x, y, color='red')
+    for polygon in all_buildings:
+        x,y = polygon.exterior.xy
+        ax.plot(x, y, color='blue')
+    for polygon in water_area:
+        x,y = polygon.exterior.xy
+        ax.plot(x, y, color='orange')
+    for polygon in cliff_areas:
+        x,y = polygon.exterior.xy
+        ax.plot(x, y, color='black')
+    for edge in high_speed_edges:
+        x,y = edge.xy
+        ax.plot(x, y, color='purple')
+
+    #add key
+    ax.plot([],[], color='green', label='Wooded Area')
+    ax.plot([],[], color='red', label='Tall Buildings')
+    ax.plot([],[], color='blue', label='All Buildings')
+    ax.plot([],[], color='orange', label='Water Area')
+    ax.plot([],[], color='black', label='Cliff Area')
+    ax.plot([],[], color='purple', label='High Speed Limit')
+    ax.legend()
+
+
     #Next we get the paths
     nodes, edges = osm.get_network(nodes=True, network_type="driving")
     #Print out statistics on the edges length
@@ -52,21 +83,21 @@ def process_edges(osm):
         for polygon in wooded_area:
             if edge_coords.intersects(polygon):
                 edge['user_weight'] += WOODS_WEIGHT
-        #for polygon in tall_buildings:
-        #    if edge_coords.intersects(polygon):
-        #        edge['user_weight'] += TALL_BUILDINGS_WEIGHT
-        #for polygon in all_buildings:
-        #    if edge_coords.intersects(polygon):
-        #        edge['user_weight'] += ALL_BUILDINGS_WEIGHT
-        #for polygon in water_area:
-        #    if edge_coords.intersects(polygon):
-        #        edge['user_weight'] += WATER_WEIGHT
-        #for polygon in cliff_areas:
-        #    if edge_coords.intersects(polygon):
-        #        edge['user_weight'] += CLIFF_WEIGHT
-        ##TODO: see if there is a better way for getting a unique key
-        #if edge["geometry"] in high_speed_edges: #We are using geometry as a unique key since no two edges can be at the same locations
-        #    edge['user_weight'] += HIGH_SPEED_WEIGHT
+        for polygon in tall_buildings:
+            if edge_coords.intersects(polygon):
+                edge['user_weight'] += TALL_BUILDINGS_WEIGHT
+        for polygon in all_buildings:
+            if edge_coords.intersects(polygon):
+                edge['user_weight'] += ALL_BUILDINGS_WEIGHT
+        for polygon in water_area:
+            if edge_coords.intersects(polygon):
+                edge['user_weight'] += WATER_WEIGHT
+        for polygon in cliff_areas:
+            if edge_coords.intersects(polygon):
+                edge['user_weight'] += CLIFF_WEIGHT
+        #TODO: see if there is a better way for getting a unique key
+        if edge["geometry"] in high_speed_edges: #We are using geometry as a unique key since no two edges can be at the same locations
+            edge['user_weight'] += HIGH_SPEED_WEIGHT
     return nodes, edges
 #TODO: add more options, only lookouts and water are available
 def get_destination_nodes(nodes, start_node):
@@ -128,7 +159,7 @@ def main(start_location=None):
     node2_index = vseq.find(id=destination.id)
 
     #Get the shortest path between the two nodes
-    path = G.get_shortest_paths(node1_index, to=node2_index, weights='length', output='vpath')[0]
+    path = G.get_shortest_paths(node1_index, to=node2_index, weights='user_weight', output='vpath')[0]
 
     #Get the coordinates of the nodes in the shortest path
     path_coords_lat = np.array([vseq[i].attributes()['lat'] for i in path])
