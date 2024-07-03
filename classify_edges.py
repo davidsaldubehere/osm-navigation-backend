@@ -21,7 +21,7 @@ def high_speed_limit(osm, threshold=55):
     #Max speed is formatted weird like 25 mph or None or 'none' for some reason
     high_speed_edges = edges[edges['maxspeed'].apply(lambda x: int(x.split(' ')[0]) if (x is not None and x != "none" ) else 0) >= threshold]
     #return the edge ids
-    return high_speed_edges['geometry']
+    return set(high_speed_edges['geometry'])
 
 #I guess you could just do it while calculating the edges, but this could be better for a preprocessing step
 def preprocess_edges(osm):

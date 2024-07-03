@@ -8,20 +8,21 @@ import random
 from destination_selection import get_lookout_points, get_water_points, get_closest_node, haversine
 import numpy as np
 import matplotlib.pyplot as plt
+import pandas as pd
 #First we get open the OSM data
-osm = OSM("state_college_large.osm.pbf")
+osm = OSM("state_college.osm.pbf")
 #Constant weights
 
-WOODS_WEIGHT = 10000000
+WOODS_WEIGHT = -10
 TALL_BUILDINGS_WEIGHT= 1
 ALL_BUILDINGS_WEIGHT = 1
 WATER_WEIGHT = 1
-CLIFF_WEIGHT = 1
+CLIFF_WEIGHT = 2
 HIGH_SPEED_WEIGHT = 1
 LOW_SPEED_WEIGHT = 1 #unused rn
 
 MAX_DISTANCE_THRESHOLD = 30
-MIN_DISTANCE_THRESHOLD = .1
+MIN_DISTANCE_THRESHOLD = .2
 
 #TODO: rewrite all of this with better searching with hashmaps
 
@@ -31,38 +32,20 @@ def process_edges(osm, plot_surface):
     #TODO: make this a preprocess step
     #Next we calculate the corresponding polygons that can be used in the path calculation
     wooded_area = create_tree_boundary(osm)
-    tall_buildings = create_tall_boundary(osm)
-    all_buildings = create_building_boundary(osm)
-    water_area = create_water_boundary(osm)
     cliff_areas = create_sharp_elevation_boundary(osm)
-    high_speed_edges = high_speed_limit(osm)
+
     #Show all the boundaries
     for polygon in wooded_area:
         x,y = polygon.exterior.xy
-        plot_surface.plot(x, y, color='green')
-    for polygon in tall_buildings:
-        x,y = polygon.exterior.xy
         plot_surface.plot(x, y, color='red')
-    for polygon in all_buildings:
-        x,y = polygon.exterior.xy
-        plot_surface.plot(x, y, color='blue')
-    for polygon in water_area:
-        x,y = polygon.exterior.xy
-        plot_surface.plot(x, y, color='orange')
     for polygon in cliff_areas:
         x,y = polygon.exterior.xy
         plot_surface.plot(x, y, color='black')
-    for edge in high_speed_edges:
-        x,y = edge.xy
-        plot_surface.plot(x, y, color='purple')
 
     #add key
-    plt.plot([],[], color='green', label='Wooded Area')
-    plt.plot([],[], color='red', label='Tall Buildings')
-    plt.plot([],[], color='blue', label='All Buildings')
-    plt.plot([],[], color='orange', label='Water Area')
+    plt.plot([],[], color='red', label='Wooded Area')
     plt.plot([],[], color='black', label='Cliff Area')
-    plt.plot([],[], color='purple', label='High Speed Limit')
+
     plt.legend()
 
 
@@ -84,23 +67,9 @@ def process_edges(osm, plot_surface):
         for polygon in wooded_area:
             if edge_coords.intersects(polygon):
                 edges.at[i, 'user_weight'] += WOODS_WEIGHT
-
-        for polygon in tall_buildings:
-            if edge_coords.intersects(polygon):
-                edges.at[i, 'user_weight'] += TALL_BUILDINGS_WEIGHT
-        for polygon in all_buildings:
-            if edge_coords.intersects(polygon):
-                edges.at[i, 'user_weight'] += ALL_BUILDINGS_WEIGHT
-
-        for polygon in water_area:
-            if edge_coords.intersects(polygon):
-                edges.at[i, 'user_weight'] += WATER_WEIGHT
         for polygon in cliff_areas:
             if edge_coords.intersects(polygon):
                 edges.at[i, 'user_weight'] += CLIFF_WEIGHT
-
-        if edge['geometry'] in high_speed_edges:
-            edges.at[i, 'user_weight'] += HIGH_SPEED_WEIGHT
 
     print(edges['user_weight'].describe())
     return nodes, edges
@@ -112,12 +81,6 @@ def get_destination_nodes(nodes, start_node):
     #The options are random, bodies of water, parks, wooded areas, lookouts, large open areas/fields
     #We can add more options as we see fit
     destination_nodes = []
-    for node in get_lookout_points(osm, start_node, #TODO: add more options
-        MAX_DISTANCE_THRESHOLD, MIN_DISTANCE_THRESHOLD):
-        destination_nodes.append(node)
-    for node in (get_water_points(osm, start_node,
-        MAX_DISTANCE_THRESHOLD, MIN_DISTANCE_THRESHOLD)):
-        destination_nodes.append(node)
     
     if len(destination_nodes) == 0: #Untested
         print("No prime destination nodes found, defaulting to all nodes")
@@ -134,7 +97,6 @@ def get_destination_nodes(nodes, start_node):
 
 
 #start location will be blank for now since we have no GPS data
-#TODO: search for start and ending nodes after the graph conversion to prevent the cannot find node error
 def destination_mode(start_location=None):
     #lets temporarily assume that the start location is a random node
 
@@ -144,13 +106,16 @@ def destination_mode(start_location=None):
     nodes, edges = osm.get_network(nodes=True, network_type="driving")
     ax = edges.plot(figsize=(6,6), color="gray")
     nodes, edges = process_edges(osm, ax)
+    G = osm.to_graph(nodes, edges)
+    #For some reason converting to a graph looses some nodes so lets get the nodes again
+    nodes = pd.DataFrame([node.attributes() for node in G.vs])
+
     if start_location: #There may be an issue between using sample and get_closest_node
         start_node = get_closest_node(nodes, latitude, longitude)
     else:
         start_node = nodes.sample(1)
     destinate_nodes = get_destination_nodes(nodes, start_node)
     #randomly select a destination node
-
     try:
         destination = random.choice(destinate_nodes)
         destination = get_closest_node(nodes, destination.y, destination.x)
@@ -161,11 +126,8 @@ def destination_mode(start_location=None):
         destination = random.choice(destinate_nodes)
         destination = get_closest_node(nodes, destination.y, destination.x)
 
-    #Check if the destination node is a geoseries object
-
-
     #Now we need to find a path from the start node to the destination node
-    G = osm.to_graph(nodes, edges)
+    
 
     #One thing I have noticed is that the geometry of the nodes contains more precision in coordinates than the lat and lon attributes
     #But this is the other way around in the igraph representaion
@@ -178,8 +140,48 @@ def destination_mode(start_location=None):
     node2_index = vseq.find(id=destination.id)
 
     #Get the shortest path between the two nodes
-    #Something is wrong, it isn't using the weights
-    path = G.get_shortest_paths(node1_index, to=node2_index, weights='user_weight', output='vpath')[0]
+    #path = G.get_shortest_paths(node1_index, to=node2_index, weights='user_weight', output='vpath')[0]
+
+    #Okay let's instead write a custom shortest path algorithm that doesn't allow for intersections
+    #We will use Bellman Ford
+
+
+    def bellman_modified():
+        distances = {}
+        previous = {}
+        #loop through each vertice and set the distance to infinity
+        for vertice in G.vs:
+            distances[vertice.index] = float('inf')
+            previous[vertice.index] = None
+        distances[node1_index.index] = 0
+
+        for vertice in G.vs:
+            for edge in G.es:
+                if distances[edge.source] + edge['user_weight'] < distances[edge.target] and not check_path_intersection(previous, edge.source, edge.target, node1_index.index):
+                    distances[edge.target] = distances[edge.source] + edge['user_weight']
+                    previous[edge.target] = edge.source
+
+        return distances, previous
+    def check_path_intersection(prev, source, target, start):
+        path = set()
+        path.add(target)
+        while source != start:
+            if source in path:
+                return True
+            source =  prev[source]
+        return False
+    
+    distances, previous = bellman_modified()
+
+    #Get the shortest path
+    path = []
+    current = node2_index.index
+    while current != None:
+        path.append(current)
+        current = previous[current]
+
+    path = path[::-1]
+
 
     #Get the coordinates of the nodes in the shortest path
     path_coords_lat = np.array([vseq[i].attributes()['lat'] for i in path])

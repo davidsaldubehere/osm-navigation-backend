@@ -8,7 +8,7 @@ from destination_selection import get_lookout_points, get_water_points, get_clos
 import numpy as np
 import matplotlib.pyplot as plt
 
-osm = OSM("state_college_large.osm.pbf")
+osm = OSM("state_college.osm.pbf")
 wooded_area = create_tree_boundary(osm)
 tall_buildings = create_tall_boundary(osm)
 all_buildings = create_building_boundary(osm)

@@ -1,7 +1,8 @@
 from pyrosm import OSM
 from math import radians, cos, sin, asin, sqrt
-from create_polygons import create_water_boundary
-from shapely.geometry import Polygon
+from create_polygons import create_water_boundary, create_building_boundary
+from shapely.geometry import Point
+from scipy.optimize import differential_evolution
 import geopandas as gpd
 import matplotlib.pyplot as plt
 
@@ -83,8 +84,45 @@ def get_water_points(osm, start, max_distance_threshold=20, min_distance_thresho
         #sort the areas
         safe_water_areas = [x.centroid for _, x in sorted(zip(projected_polygons_area, safe_water_areas), key=lambda pair: pair[0], reverse=True)]
         safe_water_areas = safe_water_areas[:len(safe_water_areas)//2]
-    #THIS ACTUALLY WORKS I TESTED IT
+    #THIS ACTUALLY WORKS I TESTED IT --dumbass forgot what to do when less than 3..
+    else:
+        safe_water_areas = [x.centroid for x in safe_water_areas]
+
+
     return safe_water_areas
+
+
+#TODO: add a polygon around the areas visited before so that we don't go there again
+#TODO: ... restrict the bounds to only search within the distance thresholds
+def get_isolated_points(osm, start, max_distance_threshold, min_distance_threshold):
+    buildings = create_building_boundary(osm)
+    for polygon in buildings:
+        x,y = polygon.exterior.xy
+        plt.plot(x, y, color='blue')
+
+
+    #Define boundaries
+    roads = osm.get_network(network_type="driving")
+    nodes = osm._nodes
+
+    lat_min, lat_max = nodes['lat'].min(), nodes['lat'].max()
+    lon_min, lon_max = nodes['lon'].min(), nodes['lon'].max()
+    bounds = [(lon_min, lon_max), (lat_min, lat_max)]
+
+    #One of the perks of differential evolution is that it is semi random 
+    def distance_to_polygons(point, polygons):
+        x, y = point
+        point = Point(x, y)
+        distances = [point.distance(polygon) for polygon in polygons]
+        return min(distances)
+
+    # Objective function to maximize (negative because we use minimize)
+    def objective(point):
+        return -distance_to_polygons(point, buildings)
+    result = differential_evolution(objective, bounds, strategy='best1bin', maxiter=1000, popsize=15, tol=1e-6)
+    return result.x
+
+
 
 def get_closest_node(nodes, latitude, longitude):
 

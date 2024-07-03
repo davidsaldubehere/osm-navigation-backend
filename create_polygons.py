@@ -70,7 +70,7 @@ def create_tree_boundary(osm, buffer = .0003):
 
 #TODO: Combine this method with the create_building_boundary method
 
-def create_tall_boundary(osm, threshold=10):
+def create_tall_boundary(osm, threshold=10,buffer = .0003):
     buildings = osm.get_buildings()
 
     #First lets make sure height is a column (sparse areas may not have height)
@@ -115,6 +115,9 @@ def create_tall_boundary(osm, threshold=10):
         vertices = hull.points[hull.vertices]
         polygon = Polygon(vertices)
         shapely_polygons.append(polygon)
+    
+    #Buffer the polygons
+    shapely_polygons = [poly.buffer(buffer) for poly in shapely_polygons]
     return shapely_polygons
 #TODO: make sure your eps isnt too high
 def create_building_boundary(osm, buffer=.0003):
