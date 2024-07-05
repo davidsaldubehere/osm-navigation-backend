@@ -9,20 +9,21 @@ from destination_selection import get_lookout_points, get_water_points, get_clos
 import numpy as np
 import matplotlib.pyplot as plt
 import pandas as pd
+import path_finding # type: ignore
 #First we get open the OSM data
-osm = OSM("state_college.osm.pbf")
+osm = OSM("state_college_mountains.osm.pbf") #for some reason it isn't working with the other file
 #Constant weights
 
-WOODS_WEIGHT = -10
-TALL_BUILDINGS_WEIGHT= 1
-ALL_BUILDINGS_WEIGHT = 1
+WOODS_WEIGHT = -5 #anything more and the results get very skewed
+TALL_BUILDINGS_WEIGHT= 0
+ALL_BUILDINGS_WEIGHT = 0
 WATER_WEIGHT = 1
-CLIFF_WEIGHT = 2
+CLIFF_WEIGHT = 1
 HIGH_SPEED_WEIGHT = 1
 LOW_SPEED_WEIGHT = 1 #unused rn
 
-MAX_DISTANCE_THRESHOLD = 30
-MIN_DISTANCE_THRESHOLD = .2
+MAX_DISTANCE_THRESHOLD = 1.5
+MIN_DISTANCE_THRESHOLD = .6
 
 #TODO: rewrite all of this with better searching with hashmaps
 
@@ -31,20 +32,17 @@ def process_edges(osm, plot_surface):
 
     #TODO: make this a preprocess step
     #Next we calculate the corresponding polygons that can be used in the path calculation
+
+    #Preprocessing time doesn't matter, the shortest path does though
     wooded_area = create_tree_boundary(osm)
-    cliff_areas = create_sharp_elevation_boundary(osm)
 
     #Show all the boundaries
     for polygon in wooded_area:
         x,y = polygon.exterior.xy
         plot_surface.plot(x, y, color='red')
-    for polygon in cliff_areas:
-        x,y = polygon.exterior.xy
-        plot_surface.plot(x, y, color='black')
 
     #add key
     plt.plot([],[], color='red', label='Wooded Area')
-    plt.plot([],[], color='black', label='Cliff Area')
 
     plt.legend()
 
@@ -67,10 +65,6 @@ def process_edges(osm, plot_surface):
         for polygon in wooded_area:
             if edge_coords.intersects(polygon):
                 edges.at[i, 'user_weight'] += WOODS_WEIGHT
-        for polygon in cliff_areas:
-            if edge_coords.intersects(polygon):
-                edges.at[i, 'user_weight'] += CLIFF_WEIGHT
-
     print(edges['user_weight'].describe())
     return nodes, edges
 #TODO: add more options, only lookouts and water are available (we have a lot more work to do with this)
@@ -132,11 +126,12 @@ def destination_mode(start_location=None):
     #One thing I have noticed is that the geometry of the nodes contains more precision in coordinates than the lat and lon attributes
     #But this is the other way around in the igraph representaion
     vseq = G.vs
+
     #print(f'start node: {start_node}\n\n')
     #print(f'destination node: {destination}\n\n')
 
     #Get the index of the two nodes
-    node1_index = vseq.find(id=start_node.id) #This doesn't always work for some reason
+    node1_index = vseq.find(id=start_node.id)
     node2_index = vseq.find(id=destination.id)
 
     #Get the shortest path between the two nodes
@@ -145,49 +140,29 @@ def destination_mode(start_location=None):
     #Okay let's instead write a custom shortest path algorithm that doesn't allow for intersections
     #We will use Bellman Ford
 
+    #We need to convert the edges to a list like [[sourceindex, endindex, weight], []...]
 
-    def bellman_modified():
-        distances = {}
-        previous = {}
-        #loop through each vertice and set the distance to infinity
-        for vertice in G.vs:
-            distances[vertice.index] = float('inf')
-            previous[vertice.index] = None
-        distances[node1_index.index] = 0
+    edge_list = [[float(edge.source), float(edge.target), edge['user_weight']] for edge in G.es]
 
-        for vertice in G.vs:
-            for edge in G.es:
-                if distances[edge.source] + edge['user_weight'] < distances[edge.target] and not check_path_intersection(previous, edge.source, edge.target, node1_index.index):
-                    distances[edge.target] = distances[edge.source] + edge['user_weight']
-                    previous[edge.target] = edge.source
+    #TODO: move the path calculation to the C extension
 
-        return distances, previous
-    def check_path_intersection(prev, source, target, start):
-        path = set()
-        path.add(target)
-        while source != start:
-            if source in path:
-                return True
-            source =  prev[source]
-        return False
-    
-    distances, previous = bellman_modified()
+    print("starting path calculation")
+    path1 = path_finding.bellman_ford_no_interesections(edge_list, len(vseq), node1_index.index, node2_index.index)
 
-    #Get the shortest path
-    path = []
-    current = node2_index.index
-    while current != None:
-        path.append(current)
-        current = previous[current]
-
-    path = path[::-1]
-
+    print("finished path calculation")
 
     #Get the coordinates of the nodes in the shortest path
+    path_coords_lat = np.array([vseq[i].attributes()['lat'] for i in path1])
+    path_coords_lon = np.array([vseq[i].attributes()['lon'] for i in path1])
+
+    plt.scatter(path_coords_lon, path_coords_lat, color='green', s=10)
+
+    #Regular path
+    path = G.get_shortest_paths(node1_index, to=node2_index, weights='length', output='vpath')[0]
     path_coords_lat = np.array([vseq[i].attributes()['lat'] for i in path])
     path_coords_lon = np.array([vseq[i].attributes()['lon'] for i in path])
 
-    plt.scatter(path_coords_lon, path_coords_lat, color='green', s=10)
+    plt.scatter(path_coords_lon, path_coords_lat, color='blue', s=10)
     plt.show()
 
 

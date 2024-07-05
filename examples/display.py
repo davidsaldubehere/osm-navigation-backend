@@ -4,7 +4,7 @@ import matplotlib.pyplot as plt
 
 
 # Initialize the OSM parser object
-osm = OSM("state_college_large.osm.pbf")
+osm = OSM("state_college_mountains.osm.pbf")
 natural = osm.get_natural()
 roads = osm.get_network(network_type="driving")
 buildings = osm.get_buildings()
