@@ -58,15 +58,24 @@ def create_tree_boundary(osm, buffer = .0003):
         polygon = polygon.buffer(buffer) # Buffer the polygon slightly
         shapely_polygons.append(polygon)
 
-    #we also need to buffer the tree polygons
-    tree_polys = [poly.buffer(buffer) for poly in tree_polys]
+
+    #we also need to buffer the tree polygons    
+    combined_polys = []
+    for poly in shapely_polygons + list(tree_polys):
+        buffer_result= poly.buffer(buffer)
+        if buffer_result.geom_type == 'Polygon':
+            combined_polys.append(buffer_result)
+        else:
+            for poly in buffer_result.geoms:    #https://github.com/shapely/shapely/issues/1044 .... this is a bug in shapely that causes the buffer to not work
+
+                combined_polys.append(poly)
 
     #plot the polygons
     #for polygon in shapely_polygons:
     #    x,y = polygon.exterior.xy
     #    plt.plot(x, y)
     #plt.show()
-    return shapely_polygons+ tree_polys
+    return combined_polys
 
 #TODO: Combine this method with the create_building_boundary method
 

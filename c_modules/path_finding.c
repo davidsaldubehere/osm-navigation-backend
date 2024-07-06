@@ -177,7 +177,6 @@ void bellmanFord(int vertices, int edges, int source, int target, float graph[ed
     //TODO: so we are running out of compute... so we need to leverage our memory (if option 1 doesn't work)
     // We are going to keep track of every single path for each vertex so that we can check for intersections easier using the hashset
 
-
     // Declare distance array
     float distance[vertices];
 
@@ -207,7 +206,9 @@ void bellmanFord(int vertices, int edges, int source, int target, float graph[ed
                 distance[(int)graph[j][1]]
                     = distance[(int)graph[j][0]] + graph[j][2];
                 // Update the predecessor
-                predecessor[(int)graph[j][1]] = (int)graph[j][0];}
+                predecessor[(int)graph[j][1]] = (int)graph[j][0];
+                
+                }
         }
     }
     printf("Path finding complete\n");

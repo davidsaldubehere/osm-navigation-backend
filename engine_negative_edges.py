@@ -11,7 +11,7 @@ import matplotlib.pyplot as plt
 import pandas as pd
 import path_finding # type: ignore
 #First we get open the OSM data
-osm = OSM("state_college_large.osm.pbf") #for some reason it isn't working with the other file
+osm = OSM("lewistown.osm.pbf")
 #Constant weights
 
 #TODO: we could always just stick with postive weights on reverse masked regions (regions that for example don't have woods instead of do have woods)
@@ -21,16 +21,16 @@ osm = OSM("state_college_large.osm.pbf") #for some reason it isn't working with 
 #So we will reward large edges more than small edges just cause a lot of small edges can be grouped together ruining compute
 #This also smooths out the route a bit more
 
-WOODS_WEIGHT = -10 
+WOODS_WEIGHT = 1 #0 through -9 is too high. -10 is the maximum value that doesn't cause the path to be too negative
 TALL_BUILDINGS_WEIGHT= 0
 ALL_BUILDINGS_WEIGHT = 0
-WATER_WEIGHT = 1
+WATER_WEIGHT = 0
 CLIFF_WEIGHT = 1
-HIGH_SPEED_WEIGHT = 1
+HIGH_SPEED_WEIGHT = -10 #I have seen -8 work, but stick with -10 as the maximum
 LOW_SPEED_WEIGHT = 1 #unused rn
 
 MAX_DISTANCE_THRESHOLD = 10
-MIN_DISTANCE_THRESHOLD = .6
+MIN_DISTANCE_THRESHOLD = 5
 
 #TODO: rewrite all of this with better searching with hashmaps
 
@@ -40,16 +40,23 @@ def process_edges(osm, plot_surface):
     #TODO: make this a preprocess step
     #Next we calculate the corresponding polygons that can be used in the path calculation
 
+
+    #TODO: we need to remove the no access edges and stop passing the entire osm object to the functions just pass the edges and nodes
+
+
     #Preprocessing time doesn't matter, the shortest path does though
     wooded_area = create_tree_boundary(osm)
+    cliff_area = create_sharp_elevation_boundary(osm)
+    high_speed_edges = high_speed_limit(osm)
 
-    #Show all the boundaries
-    for polygon in wooded_area:
-        x,y = polygon.exterior.xy
-        plot_surface.plot(x, y, color='red')
+    for edge in high_speed_edges:
+        x,y = edge.xy
+        plot_surface.plot(x, y, color='purple')
 
     #add key
     plt.plot([],[], color='red', label='Wooded Area')
+    plt.plot([],[], color='black', label='Cliff Area')
+    plt.plot([],[], color='purple', label='High Speed Limit')
 
     plt.legend()
 
@@ -58,6 +65,8 @@ def process_edges(osm, plot_surface):
     nodes, edges = osm.get_network(nodes=True, network_type="driving")
     #Print out statistics on the edges length
     print(edges['length'].describe())
+
+    #TODO: remove the edges that are inactive    
 
 
 
@@ -68,10 +77,9 @@ def process_edges(osm, plot_surface):
     #We can use the shapely library to check for intersections
 
     for i, edge in edges.iterrows():
-        edge_coords = LineString(edge['geometry'])
-        for polygon in wooded_area:
-            if edge_coords.intersects(polygon):
-                edges.at[i, 'user_weight'] += edges.at[i, 'length'] / WOODS_WEIGHT 
+        
+        if edge['geometry'] in high_speed_edges:
+            edges.at[i, 'user_weight'] += edges.at[i, 'length'] / HIGH_SPEED_WEIGHT
     print(edges['user_weight'].describe())
     return nodes, edges
 #TODO: add more options, only lookouts and water are available (we have a lot more work to do with this)
@@ -179,5 +187,6 @@ def destination_mode(start_location=None):
 
 
 
-start_location = ( 40.78669, -77.85047)
+#start_location = ( 40.78669, -77.85047)
+start_location = (40.563820, -77.643768)
 destination_mode(start_location)

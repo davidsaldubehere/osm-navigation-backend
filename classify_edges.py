@@ -14,7 +14,7 @@ edge_dict = {}
 
 #TODO: have it basically add the tag high or low to the edge instead of just filtering but we can do that later
 #returns edge ids with a speed limit higher than the threshold
-def high_speed_limit(osm, threshold=55):
+def high_speed_limit(osm, threshold=45):
     # Get the edges of the driving network
     nodes, edges = osm.get_network(nodes=True, network_type="driving")
     # Get the edges with a speed limit higher than the threshold
