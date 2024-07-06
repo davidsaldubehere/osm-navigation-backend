@@ -134,30 +134,50 @@ int hashset_is_member(hashset_t set, void *item)
 // Define infinity for initialization 
 #define INF INT_MAX
 
+//int check_path_intersections(int predecessor[], int source_index, int target_index, int start_index){
+//    hashset_t path = hashset_create();
+//    if (path == NULL) {
+//	    fprintf(stderr, "failed to create hashset instance\n");
+//	abort();
+//    }
+//    hashset_add(path, (void *)target_index);
+//    int current_index = source_index;
+//    while (current_index != start_index){
+//        if (hashset_is_member(path, (void *)current_index)){
+//            hashset_destroy(path);
+//            return 1;
+//        }
+//
+//        hashset_add(path, (void *)current_index);
+//        current_index = predecessor[current_index];
+//    }
+//    hashset_destroy(path);
+//    return 0;
+//}
+int number_of_intersection_checks =0;
+
 int check_path_intersections(int predecessor[], int source_index, int target_index, int start_index){
-    hashset_t path = hashset_create();
-    if (path == NULL) {
-	    fprintf(stderr, "failed to create hashset instance\n");
-	abort();
-    }
-    hashset_add(path, (void *)target_index);
+    number_of_intersection_checks++;
     int current_index = source_index;
     while (current_index != start_index){
-        if (hashset_is_member(path, (void *)current_index)){
-            hashset_destroy(path);
-            return 1;
+        if (current_index == target_index){
+            return 0;
+        }else{
+            current_index = predecessor[current_index];
         }
-
-        hashset_add(path, (void *)current_index);
-        current_index = predecessor[current_index];
     }
-    hashset_destroy(path);
-    return 0;
+    return 1;
 }
+
+
 
 // Define Bellman-Ford function
 void bellmanFord(int vertices, int edges, int source, int target, float graph[edges][3], int predecessor[vertices])
-{
+{   
+    //TODO: so we are running out of compute... so we need to leverage our memory (if option 1 doesn't work)
+    // We are going to keep track of every single path for each vertex so that we can check for intersections easier using the hashset
+
+
     // Declare distance array
     float distance[vertices];
 
@@ -181,7 +201,8 @@ void bellmanFord(int vertices, int edges, int source, int target, float graph[ed
                 && distance[(int)graph[j][0]] != INF
                 && distance[(int)graph[j][1]]
                        > distance[(int)graph[j][0]]
-                             + graph[j][2] && !check_path_intersections(predecessor, (int)graph[j][0], (int)graph[j][1], source)){
+                             + graph[j][2] && check_path_intersections(predecessor, (int)graph[j][0], (int)graph[j][1], source)
+                             ){
                 // Update the distance
                 distance[(int)graph[j][1]]
                     = distance[(int)graph[j][0]] + graph[j][2];
@@ -189,6 +210,9 @@ void bellmanFord(int vertices, int edges, int source, int target, float graph[ed
                 predecessor[(int)graph[j][1]] = (int)graph[j][0];}
         }
     }
+    printf("Path finding complete\n");
+    printf("Shortest distance from source to target: %f\n", distance[target]);
+    printf("Number of intersection checks: %d\n", number_of_intersection_checks);
 }
 
 
@@ -265,6 +289,8 @@ static PyObject* bellman_ford_no_interesections(PyObject* self, PyObject* args) 
 
     int predecessor[vertices];
     bellmanFord(vertices, edges, start_vertex, end_vertex, graph, predecessor);
+
+    printf("Reconstructing path\n");
 
     int temp_path[vertices]; //we may not use all the vertices obviously.. but in C there are garbage values to worry about
     int current_vertex = predecessor[end_vertex];

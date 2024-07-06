@@ -11,10 +11,17 @@ import matplotlib.pyplot as plt
 import pandas as pd
 import path_finding # type: ignore
 #First we get open the OSM data
-osm = OSM("state_college_mountains.osm.pbf") #for some reason it isn't working with the other file
+osm = OSM("state_college_large.osm.pbf") #for some reason it isn't working with the other file
 #Constant weights
 
-WOODS_WEIGHT = -5 #anything more and the results get very skewed
+#TODO: we could always just stick with postive weights on reverse masked regions (regions that for example don't have woods instead of do have woods)
+#LAST DITCH OPTION IF NOTHING ELSE WORKS
+
+#TODO: we are going to make negative weights proportional to the length of the edge because we are getting massively negative values for the length of the total path. 
+#So we will reward large edges more than small edges just cause a lot of small edges can be grouped together ruining compute
+#This also smooths out the route a bit more
+
+WOODS_WEIGHT = -10 
 TALL_BUILDINGS_WEIGHT= 0
 ALL_BUILDINGS_WEIGHT = 0
 WATER_WEIGHT = 1
@@ -22,7 +29,7 @@ CLIFF_WEIGHT = 1
 HIGH_SPEED_WEIGHT = 1
 LOW_SPEED_WEIGHT = 1 #unused rn
 
-MAX_DISTANCE_THRESHOLD = 1.5
+MAX_DISTANCE_THRESHOLD = 10
 MIN_DISTANCE_THRESHOLD = .6
 
 #TODO: rewrite all of this with better searching with hashmaps
@@ -54,7 +61,7 @@ def process_edges(osm, plot_surface):
 
 
 
-    #Create a column of zeros for the user weight
+    #Create a column of base weight for the user weight
     edges['user_weight'] = edges['length'].copy() * .1
 
     #We need to loop through each edge, see if it intersects with any of the polygons and add score accordingly
@@ -64,7 +71,7 @@ def process_edges(osm, plot_surface):
         edge_coords = LineString(edge['geometry'])
         for polygon in wooded_area:
             if edge_coords.intersects(polygon):
-                edges.at[i, 'user_weight'] += WOODS_WEIGHT
+                edges.at[i, 'user_weight'] += edges.at[i, 'length'] / WOODS_WEIGHT 
     print(edges['user_weight'].describe())
     return nodes, edges
 #TODO: add more options, only lookouts and water are available (we have a lot more work to do with this)
@@ -101,6 +108,11 @@ def destination_mode(start_location=None):
     ax = edges.plot(figsize=(6,6), color="gray")
     nodes, edges = process_edges(osm, ax)
     G = osm.to_graph(nodes, edges)
+    #total edges
+    print(len(G.es))
+
+
+
     #For some reason converting to a graph looses some nodes so lets get the nodes again
     nodes = pd.DataFrame([node.attributes() for node in G.vs])
 
